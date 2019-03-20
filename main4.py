@@ -73,7 +73,7 @@ def generateJson(edges, start, end):
 
 def thread1(G, carData, roadData, returndict1):
     finalPath = []
-    for carNum in range(0, int(len(carData) / 2)):
+    for carNum in range(0, int(len(carData) / 4)):
         # items = algorithms.ksp_yen(G, '51', '3', 5)
         items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 3)
         for path in items:
@@ -98,7 +98,7 @@ def thread1(G, carData, roadData, returndict1):
 
 def thread2(G, carData, roadData, returndict2):
     finalPath = []
-    for carNum in range(int(len(carData) / 2), len(carData)):
+    for carNum in range(int(len(carData) / 4), int(len(carData) / 2)):
         # items = algorithms.ksp_yen(G, '51', '3', 5)
         items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 3)
 
@@ -125,17 +125,80 @@ def thread2(G, carData, roadData, returndict2):
             finalPath.append(carRouteTmp)
     returndict2["result"] = finalPath
 
+def thread3(G, carData, roadData, returndict3):
+    finalPath = []
+    for carNum in range(int(len(carData) / 2), int(len(carData) / 4) * 3):
+        # items = algorithms.ksp_yen(G, '51', '3', 5)
+        items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 3)
+
+        for path in items:
+            carRoute = path['path']
+
+            length = len(carRoute)
+            carRoute.reverse()
+            print("33333333333333333333333")
+            # for i in range(len(carRoute)):
+            #     f.write(carRoute[i])
+            #     if i != len(carRoute) - 1:
+            #         f.write(',')
+            # f.write('\n')
+
+            carRouteTmp = []
+            for i in range(1, length):
+                for j in range(len(roadData)):
+                    if ((roadData[j][-3] == int(carRoute[length - i]) and roadData[j][-2] == int(
+                            carRoute[length - i - 1])) or
+                            (roadData[j][-2] == int(carRoute[length - i]) and roadData[j][-3] == int(
+                                carRoute[length - i - 1]))):
+                        carRouteTmp.append(roadData[j][0])
+            finalPath.append(carRouteTmp)
+    returndict3["result"] = finalPath
+
+
+
+def thread4(G, carData, roadData, returndict4):
+    finalPath = []
+    for carNum in range(int(len(carData) / 4) * 3, len(carData)):
+        # items = algorithms.ksp_yen(G, '51', '3', 5)
+        items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 3)
+
+        for path in items:
+            carRoute = path['path']
+
+            length = len(carRoute)
+            carRoute.reverse()
+            print("444444444444444444444444")
+            # for i in range(len(carRoute)):
+            #     f.write(carRoute[i])
+            #     if i != len(carRoute) - 1:
+            #         f.write(',')
+            # f.write('\n')
+
+            carRouteTmp = []
+            for i in range(1, length):
+                for j in range(len(roadData)):
+                    if ((roadData[j][-3] == int(carRoute[length - i]) and roadData[j][-2] == int(
+                            carRoute[length - i - 1])) or
+                            (roadData[j][-2] == int(carRoute[length - i]) and roadData[j][-3] == int(
+                                carRoute[length - i - 1]))):
+                        carRouteTmp.append(roadData[j][0])
+            finalPath.append(carRouteTmp)
+    returndict4["result"] = finalPath
 
 def main(carData, roadData):
     G = DiGraph("net5")
     manager = Manager()
     return_dict1 = manager.dict()
     return_dict2 = manager.dict()
+    return_dict3 = manager.dict()
+    return_dict4 = manager.dict()
 
     start = datetime.now()
-    p = Pool(2)
+    p = Pool(4)
     p.apply_async(thread1, args=(G, carData, roadData, return_dict1))
     p.apply_async(thread2, args=(G, carData, roadData, return_dict2))
+    p.apply_async(thread3, args=(G, carData, roadData, return_dict3))
+    p.apply_async(thread4, args=(G, carData, roadData, return_dict4))
     p.close()
     p.join()
 
@@ -152,16 +215,12 @@ def main(carData, roadData):
 
     subResult1 = return_dict1['result']
     subReuslt2 = return_dict2['result']
+    subResult3 = return_dict3['result']
+    subReuslt4 = return_dict4['result']
 
-    allCarRoute = subResult1 + subReuslt2
+    allCarRoute = subResult1 + subReuslt2 + subResult3 + subReuslt4
 
-    for i in range(len(allCarRoute)):
-        for j in range(len(allCarRoute[i]) - 1):
-            if allCarRoute[i][j] == allCarRoute[i][j+1]:
-                print("car ===================== %d" % int(carData[int(i/3)][0]))
-
-
-    with open('./allPath.txt', 'w') as f:
+    with open('./eightPath.txt', 'w') as f:
         for i in range(len(carData)):
             f.write(str(carData[i][0]))
             f.write('\n')
@@ -173,6 +232,16 @@ def main(carData, roadData):
                         f.write(',')
                 f.write('\n')
                 allCarRoute.pop(0)
+
+            # for j in range(len(allCarRoute[0])):
+            #     f.write(str(allCarRoute[0][j]))
+            #     if j != len(allCarRoute[0]) - 1:
+            #         f.write(',')
+            # f.write('\n')
+            # allCarRoute.pop(0)
+
+
+
         f.close()
 
     return 0
