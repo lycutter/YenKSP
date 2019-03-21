@@ -1,10 +1,9 @@
 import re, collections
 from graph import DiGraph
-import algorithms, time
+import algorithms_transport
 import json
 from datetime import datetime
-from multiprocessing import Pool
-from multiprocessing import Manager
+import math
 
 
 def dataProcess(carPath, crossPath, roadPath):
@@ -71,84 +70,112 @@ def generateJson(edges, start, end):
         f.write(test_json)
 
 
-def thread1(G, carData, returndict1):
-    finalPath = []
-    for carNum in range(0, int(len(carData) / 2)):
-        # items = algorithms.ksp_yen(G, '51', '3', 5)
-        items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 2)
-        for path in items:
-            # print(str(carNum) + "Cost:%s\t%s" % (path['cost'], "->".join(path['path'])))
-            print("1111111111111111111111111")
-        finalPath.append(items)
-    returndict1["result"] = finalPath
-
-
-def thread2(G, carData, returndict2):
-    finalPath = []
-    for carNum in range(int(len(carData) / 2), len(carData)):
-        # items = algorithms.ksp_yen(G, '51', '3', 5)
-        items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 2)
-
-        for path in items:
-            # print(str(carNum) + "Cost:%s\t%s" % (path['cost'], "->".join(path['path'])))
-            print("222222222222222222222222")
-        finalPath.append(items)
-    returndict2["result"] = finalPath
-
 def main(carData, roadData):
 
 
-    G = DiGraph("net5")
-    manager = Manager()
-    return_dict1 = manager.dict()
-    return_dict2 = manager.dict()
-
     start = datetime.now()
-    p = Pool(2)
-    p.apply_async(thread1, args=(G, carData, return_dict1))
-    p.apply_async(thread2, args=(G, carData, return_dict2))
-    p.close()
-    p.join()
 
-    # for carNum in range(int(len(carData) / 3), len(carData)):
-    #     # items = algorithms.ksp_yen(G, '51', '3', 5)
-    #     items = algorithms.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 2)
-    #     finalPath = []
-    #     for path in items:
-    #         print("333333333333333333333")
-    #         # print(str(carNum) + "Cost:%s\t%s" % (path['cost'], "->".join(path['path'])))
+    with open('./answer.txt', 'w') as f:
+        G = DiGraph("net5")
+
+        # 5道，4道，3道，2道，1道
+        channelCoefficient = [0.9, 0.8, 0.7, 0.6, 0.5]
+        # 9, 8, 7, 6, 5, 4, 3, 2, 1
+        speedCoefficient = [1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1]
+
+        finalPath = []
+
+        for carNum in range(len(carData)):
+            # items = algorithms.ksp_yen(G, '51', '3', 5)
+            pathDict = G._data
+
+
+            items = algorithms_transport.ksp_yen(G, str(carData[carNum][1]), str(carData[carNum][2]), 2)
+
+            for path in items:
+                print(str(carNum) + "Cost:%s\t%s" % (path['cost'], "->".join(path['path'])))
+                carRoute = path['path']
+
+                length = len(carRoute)
+                carRoute.reverse()
+
+                # for i in range(len(carRoute)):
+                #     f.write(carRoute[i])
+                #     if i != len(carRoute) - 1:
+                #         f.write(',')
+                # f.write('\n')
+
+                carRouteTmp = []
+                carRouteTmp.append(carData[carNum][0])
+                carRouteTmp.append(carData[carNum][-1])
+                for i in range(1, length):
+                    for j in range(len(roadData)):
+                        if ((roadData[j][-3] == int(carRoute[length - i]) and roadData[j][-2] == int(
+                                carRoute[length - i - 1])) or
+                                (roadData[j][-2] == int(carRoute[length - i]) and roadData[j][-3] == int(
+                                    carRoute[length - i - 1]))):
+                            carRouteTmp.append(roadData[j][0])
+                finalPath.append(carRouteTmp)
+
+
+                carRoute.reverse()
+
+                for i in range(len(carRoute) - 1):
+
+                    currentRoad = finalPath[carNum][i]
+                    startPoint = carRoute[i]
+                    endPoint = carRoute[i+1]
+
+                    oldRoadLength = 0
+                    speed = 0
+                    channel = 0
+
+                    for roadNum in range(len(roadData)):
+                        if roadData[roadNum][0] == currentRoad:
+                            oldRoadLength = roadData[roadNum][1]
+                            speed = roadData[roadNum][2]
+                            channel = roadData[roadNum][3]
+
+                    newRoadLength = math.ceil(oldRoadLength * channelCoefficient[channel - 1] * speedCoefficient[speed - 1])
+
+
+
+                    for p in G._data:
+                        if p == startPoint:
+                            pathDict[startPoint][endPoint] = newRoadLength
+
+                print("debug")
+                break
+
+
+        f.write('#(carId,StartTime,RoadId...)')
+        f.write('\n')
+
+        for i in range(len(finalPath)):
+            for j in range(len(finalPath[i])):
+                if j == 0:
+                    f.write('(')
+                f.write(str(finalPath[i][j]))
+                if j != len(finalPath[i]) - 1:
+                    f.write(',')
+                else:
+                    f.write(')')
+            if i != len(finalPath) - 1:
+                f.write('\n')
+
+        f.close()
 
     end = datetime.now()
     print((end - start).seconds)
-
-    subResult1 = return_dict1['result']
-    subReuslt2 = return_dict2['result']
-
-    allCarRoute = subResult1 + subReuslt2
-
-    for i in range(len(allCarRoute)):
-        allCarRoute[i].reverse()
-
-    finalPath = []
-    carRouteTmp = []
-    for z in range(len(allCarRoute)):
-        length = len(allCarRoute[z])
-        carRoute = allCarRoute[z]
-        for i in range(1, length):
-            for j in range(len(roadData)):
-                if ((roadData[j][-3] == int(carRoute[length - i]) and roadData[j][-2] == int(carRoute[length - i - 1])) or
-                        (roadData[j][-2] == int(carRoute[length - i]) and roadData[j][-3] == int(
-                            carRoute[length - i - 1]))):
-                    carRouteTmp.append(roadData[j][0])
-        finalPath.append(carRouteTmp)
     return 0
 
 
 if __name__ == "__main__":
 
-    car_path = 'D:/pythonWorkplace/SDK/SDK_python/CodeCraft-2019/train1/car.txt'
-    road_path = 'D:/pythonWorkplace/SDK/SDK_python/CodeCraft-2019/train1/road.txt'
-    cross_path = 'D:/pythonWorkplace/SDK/SDK_python/CodeCraft-2019/train1/cross.txt'
+    car_path = 'D:/pythonWorkPlace/YenKSP-master/train1/car.txt'
+    road_path = 'D:/pythonWorkPlace/YenKSP-master/train1/road.txt'
+    cross_path = 'D:/pythonWorkPlace/YenKSP-master/train1/cross.txt'
+    # answer_path = 'D:/PythonWorkPlace/YenKSP-master/train1/answer.txt'
 
     carData, crossData, roadData = dataProcess(car_path, cross_path, road_path)
 
@@ -162,5 +189,5 @@ if __name__ == "__main__":
             edges.append((str(roadData[i][-2]), str(roadData[i][-3]), roadData[i][1]))
         else:
             edges.append((str(roadData[i][-3]), str(roadData[i][-2]), roadData[i][1]))
-    # generateJson(edges, "1", "20")
+    generateJson(edges, "1", "20")
     main(carData, roadData)

@@ -90,7 +90,7 @@ def main(carData, roadData):
 
     start = datetime.now()
 
-    with open('./allPath.txt', 'w') as f:
+    with open('./answer.txt', 'w') as f:
 
         for carNum in range(len(carData)):
             # items = algorithms.ksp_yen(G, '51', '3', 5)

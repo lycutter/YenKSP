@@ -161,7 +161,7 @@ def main(carData, roadData):
                 print("car ===================== %d" % int(carData[int(i/3)][0]))
 
 
-    with open('./allPath.txt', 'w') as f:
+    with open('./answer.txt', 'w') as f:
         for i in range(len(carData)):
             f.write(str(carData[i][0]))
             f.write('\n')
